@@ -43,7 +43,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-I2C_HandleTypeDef hi2c2;
 HAL_StatusTypeDef ret; 
 
 // MPU6050 variables 
@@ -68,9 +67,10 @@ int16_t Gyro_Z_RAW = 0;
 
 float Ax, Ay, Az, Gx, Gy,Gz; 
 uint8_t MPUtest; 
-
+uint8_t control = 0; 
 int counter = 0; 
 // END MPU6050 variables 
+
 
 /* USER CODE END PV */
 
@@ -87,6 +87,7 @@ void MPU6050_Read_Gyro(void);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern I2C_HandleTypeDef hi2c2;
 extern TIM_HandleTypeDef htim3;
 /* USER CODE BEGIN EV */
 
@@ -236,15 +237,34 @@ void SysTick_Handler(void)
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
+	if(counter == 0){
+		MPU6050_Init();  
+		HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, WHO_AM_I_REG, 1, &MPUtest,1,1000);
+		counter = 100; 
+	}
+	
 	MPU6050_Read_Accel(); 
 	MPU6050_Read_Gyro();
-	counter++; 
 	
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
 
   /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles I2C2 event interrupt.
+  */
+void I2C2_EV_IRQHandler(void)
+{
+  /* USER CODE BEGIN I2C2_EV_IRQn 0 */
+	counter = counter + 2; 
+  /* USER CODE END I2C2_EV_IRQn 0 */
+  HAL_I2C_EV_IRQHandler(&hi2c2);
+  /* USER CODE BEGIN I2C2_EV_IRQn 1 */
+
+  /* USER CODE END I2C2_EV_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

@@ -40,7 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-extern I2C_HandleTypeDef hi2c2;
+I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim3;
 
@@ -100,8 +100,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		//MPU6050_Read_Accel(); 
-		//MPU6050_Read_Gyro(); 
+		
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
