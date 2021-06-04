@@ -20,6 +20,7 @@
 "lab_project\stm32f1xx_hal_i2c.o"
 "lab_project\stm32f1xx_hal_tim.o"
 "lab_project\stm32f1xx_hal_tim_ex.o"
+"lab_project\stm32f1xx_hal_uart.o"
 "lab_project\system_stm32f1xx.o"
 --library_type=microlib --strict --scatter "lab_project\lab_project.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols

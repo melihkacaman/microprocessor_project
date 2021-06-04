@@ -75,6 +75,10 @@ int counter = 0;
 
 double adc_value; 
 char transmitData[1000]; 
+uint8_t normalized_adc_value; 
+
+int pointerOfEeprom = 0; 
+uint8_t retvals[1000]; 
 
 /* USER CODE END PV */
 
@@ -83,7 +87,7 @@ char transmitData[1000];
 void MPU6050_Init(void); 
 void MPU6050_Read_Accel(void); 
 void MPU6050_Read_Gyro(void); 
-void concntWithTransmit();
+void concntWithTransmit(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -95,6 +99,8 @@ void concntWithTransmit();
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c2;
 extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
+extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -269,14 +275,34 @@ void TIM3_IRQHandler(void)
 	
 	//read adc 
 	adc_value = HAL_ADC_GetValue(&hadc1);
+	normalized_adc_value = (255.0f/4095.0f) * adc_value;  // range 0..255 
 	
-	concntWithTransmit();
+	concntWithTransmit();  // “#x=0000,y=0000,z=0000#*adc=0000*-”
 	
+	//_writeEEPROM(&hi2c2, 0xA0, pointerOfEeprom, normalized_adc_value);
+	//_readEEPROMString(&hi2c2,0xA0, 0,7, retvals); 
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
 
   /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM4 global interrupt.
+  */
+void TIM4_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM4_IRQn 0 */
+	int lenStr = strlen(transmitData);  
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*) &transmitData, lenStr);
+	transmitData[0] = '\0';
+
+  /* USER CODE END TIM4_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim4);
+  /* USER CODE BEGIN TIM4_IRQn 1 */
+
+  /* USER CODE END TIM4_IRQn 1 */
 }
 
 /**
@@ -292,10 +318,24 @@ void I2C2_EV_IRQHandler(void)
   /* USER CODE END I2C2_EV_IRQn 1 */
 }
 
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+
+  /* USER CODE END USART2_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
-void concntWithTransmit(){
+void concntWithTransmit(void){
 	char mpu_data[100]; 
-  snprintf(mpu_data, sizeof(mpu_data), "#x=%f,y=%f,z=%f#*adc=%f*-", Ax,Ay,Az, adc_value); 
+  snprintf(mpu_data, sizeof(mpu_data), "#x=%f,y=%f,z=%f#*adc=%lf*\n-", Ax,Ay,Az, adc_value); 
 	strcat(transmitData, mpu_data);
 }
 void MPU6050_Init(void)
