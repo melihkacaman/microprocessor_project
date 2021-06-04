@@ -21,6 +21,8 @@ lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma_ex.h
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_cortex.h
+lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc.h
+lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc_ex.h
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
 lab_project\stm32f1xx_hal_gpio_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_i2c.h

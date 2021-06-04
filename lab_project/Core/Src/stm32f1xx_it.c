@@ -24,6 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "at24c256.h" 
+#include <stdio.h> 
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,6 +73,8 @@ uint8_t control = 0;
 int counter = 0; 
 // END MPU6050 variables 
 
+double adc_value; 
+char transmitData[1000]; 
 
 /* USER CODE END PV */
 
@@ -79,6 +83,7 @@ int counter = 0;
 void MPU6050_Init(void); 
 void MPU6050_Read_Accel(void); 
 void MPU6050_Read_Gyro(void); 
+void concntWithTransmit();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -87,6 +92,7 @@ void MPU6050_Read_Gyro(void);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c2;
 extern TIM_HandleTypeDef htim3;
 /* USER CODE BEGIN EV */
@@ -232,6 +238,21 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles ADC1 and ADC2 global interrupts.
+  */
+void ADC1_2_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC1_2_IRQn 0 */
+	adc_value = HAL_ADC_GetValue(&hadc1);
+	
+  /* USER CODE END ADC1_2_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC1_2_IRQn 1 */
+
+  /* USER CODE END ADC1_2_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM3 global interrupt.
   */
 void TIM3_IRQHandler(void)
@@ -242,9 +263,14 @@ void TIM3_IRQHandler(void)
 		HAL_I2C_Mem_Read(&hi2c2, MPU6050_ADDR, WHO_AM_I_REG, 1, &MPUtest,1,1000);
 		counter = 100; 
 	}
-	
+	// read mpu6050 
 	MPU6050_Read_Accel(); 
 	MPU6050_Read_Gyro();
+	
+	//read adc 
+	adc_value = HAL_ADC_GetValue(&hadc1);
+	
+	concntWithTransmit();
 	
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
@@ -259,7 +285,6 @@ void TIM3_IRQHandler(void)
 void I2C2_EV_IRQHandler(void)
 {
   /* USER CODE BEGIN I2C2_EV_IRQn 0 */
-	counter = counter + 2; 
   /* USER CODE END I2C2_EV_IRQn 0 */
   HAL_I2C_EV_IRQHandler(&hi2c2);
   /* USER CODE BEGIN I2C2_EV_IRQn 1 */
@@ -268,6 +293,11 @@ void I2C2_EV_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+void concntWithTransmit(){
+	char mpu_data[100]; 
+  snprintf(mpu_data, sizeof(mpu_data), "#x=%f,y=%f,z=%f#*adc=%f*-", Ax,Ay,Az, adc_value); 
+	strcat(transmitData, mpu_data);
+}
 void MPU6050_Init(void)
 {
     uint8_t check, Data;
@@ -324,5 +354,7 @@ void MPU6050_Read_Gyro(void)
     Gy = Gyro_Y_RAW / 131.0;
     Gz = Gyro_Z_RAW / 131.0;
 }
+
+
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
