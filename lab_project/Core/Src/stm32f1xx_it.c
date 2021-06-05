@@ -71,15 +71,21 @@ float Ax, Ay, Az, Gx, Gy,Gz;
 uint8_t MPUtest; 
 uint8_t control = 0; 
 int counter = 0; 
+
+extern int lenStr; 
 // END MPU6050 variables 
 
 double adc_value; 
-char transmitData[1000]; 
+extern char transmitData[1000]; 
 uint8_t normalized_adc_value; 
 
-uint16_t pointerOfEeprom = 0; 
+extern uint16_t pointerOfEeprom; 
 uint8_t retvals[1000]; 
 
+
+uint8_t receivedDataUART[100];
+int count = 0; 
+extern uint8_t seriData[100]; 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,6 +95,9 @@ void MPU6050_Read_Accel(void);
 void MPU6050_Read_Gyro(void); 
 void concntWithTransmit(void);
 void _writeEEPROMCustom(I2C_HandleTypeDef *i2cbus, uint8_t devAdres, uint16_t memAdres, uint8_t value);
+uint8_t _readEEPROMCustom(I2C_HandleTypeDef *i2cbus, uint8_t devAdres, uint16_t memAdres);
+void flushUint(uint8_t *base, int size); 
+void orderData(void); 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -101,7 +110,7 @@ extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
-extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -280,8 +289,6 @@ void TIM3_IRQHandler(void)
 	
 	concntWithTransmit();  // “#x=0000,y=0000,z=0000#*adc=0000*-”
 	
-	//_writeEEPROM(&hi2c2, 0xA0, pointerOfEeprom, normalized_adc_value);
-	//_readEEPROMString(&hi2c2,0xA0, 0,7, retvals); 
 	_writeEEPROMCustom(&hi2c2, 0xA0, pointerOfEeprom, normalized_adc_value);
 	pointerOfEeprom++; 
   /* USER CODE END TIM3_IRQn 0 */
@@ -297,10 +304,7 @@ void TIM3_IRQHandler(void)
 void TIM4_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM4_IRQn 0 */
-	int lenStr = strlen(transmitData);  
-	HAL_UART_Transmit_IT(&huart2, (uint8_t*) &transmitData, lenStr);
-	transmitData[0] = '\0';
-
+	lenStr = strlen(transmitData);  
   /* USER CODE END TIM4_IRQn 0 */
   HAL_TIM_IRQHandler(&htim4);
   /* USER CODE BEGIN TIM4_IRQn 1 */
@@ -322,17 +326,21 @@ void I2C2_EV_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USART2 global interrupt.
+  * @brief This function handles USART1 global interrupt.
   */
-void USART2_IRQHandler(void)
+void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART2_IRQn 0 */
+  /* USER CODE BEGIN USART1_IRQn 0 */
+	
+	HAL_UART_Receive_IT(&huart1, (uint8_t*)&receivedDataUART, 100); 
+	orderData(); 	
+	
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
 
-  /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&huart2);
-  /* USER CODE BEGIN USART2_IRQn 1 */
-
-  /* USER CODE END USART2_IRQn 1 */
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
@@ -406,10 +414,63 @@ void _writeEEPROMCustom(I2C_HandleTypeDef *i2cbus,
 	val[1] = (memAdres & 0xFF);
 	val[2] = value;
 
-	uint8_t buf2[50] = { 0 };
 	ret = HAL_I2C_Master_Transmit(i2cbus, devAdres, val, 3, 100);
 }
 
+uint8_t _readEEPROMCustom(I2C_HandleTypeDef *i2cbus, uint8_t devAdres, uint16_t memAdres) {
+	uint8_t val[2] = { 0 };
+	val[0] = (memAdres >> 8) & 0xFF; 
+	val[1] = (memAdres & 0xFF); 
+	uint8_t buf2[50] = { 0 };
+	ret = HAL_I2C_Master_Transmit(i2cbus, devAdres, val, 2, 100);
+	
+	if (ret != HAL_OK) {
+		strcpy((char*) buf2, "EEPROM Read Error I2C-TX\r\n");
+		//HAL_UART_Transmit_IT(&huart1, (uint8_t*) &buf2, sizeof(buf2));
+	} else {
+		ret = HAL_I2C_Master_Receive(i2cbus, devAdres, val, 1, 100);
+		if (ret != HAL_OK) {
+			strcpy((char*) buf2, "EEPROM Read Error I2C-RX\r\n");
+			//HAL_UART_Transmit_IT(&huart1, (uint8_t*) &buf2, sizeof(buf2));
+		}
+	}
+	return val[0];
+}
 
+void flushUint(uint8_t *base, int size){
+	int i;
+	for(i = 0; i< size; i++){
+		*(base + i) = 0x00;
+	}
+}
+
+void orderData(void){
+	if(count < 100){
+		count++; 
+	}else {
+		count = 0; 
+	}
+	
+	int seriIdx = 0; 
+	int lastIndex = count - 2;   // <melih>
+	if(receivedDataUART[lastIndex] == '>'){
+			flushUint(seriData, 100);
+			
+			uint8_t exchange[100]; 
+		
+			int j; 
+			for(j = lastIndex - 1; receivedDataUART[j] != '<'; j--){
+			if(j < 0){
+				j = 100; 
+			}	
+			exchange[seriIdx] = receivedDataUART[j]; 
+			seriIdx++;
+			
+			for(int i = 0; i < seriIdx; i++){
+				seriData[i] = exchange[seriIdx - (i+1)]; 
+			}
+		}
+	}
+}
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

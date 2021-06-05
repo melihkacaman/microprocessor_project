@@ -48,11 +48,16 @@ I2C_HandleTypeDef hi2c2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 HAL_StatusTypeDef ret; 
 uint8_t retval[100];  
+uint8_t seriData[100]; 
+uint16_t pointerOfEeprom = 0; 
+char eepromTransmit[1000];  // eprom max nr of cell is 32768 * 8 but we don't need it. 
+int lenStr; 
+char transmitData[1000]; 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,10 +66,10 @@ static void MX_GPIO_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void flushUintMn(uint8_t *base, int size); 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -103,21 +108,47 @@ int main(void)
   MX_I2C2_Init();
   MX_TIM3_Init();
   MX_ADC1_Init();
-  MX_USART2_UART_Init();
   MX_TIM4_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim3); 
 	HAL_TIM_Base_Start_IT(&htim4); 
 	HAL_ADC_Start_IT(&hadc1);
-	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE); 
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE); 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		_readEEPROMString(&hi2c2,0xA0, 0,90, retval);
-		HAL_Delay(5000);
+		//_readEEPROMString(&hi2c2,0xA0, 0,90, retval);
+		//HAL_Delay(5000);
+		
+		if(lenStr > 0) {
+			HAL_UART_Transmit(&huart1, (uint8_t*)transmitData, lenStr, 1000);
+			transmitData[0] = '\0';
+			lenStr = 0; 
+		}
+		
+		if(seriData[0] == 'R'){
+			// SEND DATA FROM EEPROM, 
+			
+			for(int i=0; i<pointerOfEeprom; i++){
+				char eepromData[10]; 
+				char res = _readEEPROM(&hi2c2, 0xA0, i); 			
+				snprintf(eepromData, sizeof(eepromData), "%c#", res); 
+				strcat(eepromTransmit, eepromData);
+			}
+			pointerOfEeprom = 0; 			
+			int sizeOfEeprom = strlen(eepromTransmit); 
+			//HAL_UART_Transmit_IT(&huart1, (uint8_t*) &eepromTransmit, sizeOfEeprom);
+			HAL_UART_Transmit(&huart1, (uint8_t*)eepromTransmit, sizeOfEeprom, 1000);
+			eepromTransmit[0] = '\0';
+			
+			
+			seriData[0] = 0x00; 
+		}
+		
 		
     /* USER CODE END WHILE */
 
@@ -338,35 +369,35 @@ static void MX_TIM4_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -385,7 +416,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void flushUintMn(uint8_t *base, int size){
+	int i;
+	for(i = 0; i< size; i++){
+		*(base + i) = 0x00;
+	}
+}
 /* USER CODE END 4 */
 
 /**
