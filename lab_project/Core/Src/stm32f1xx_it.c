@@ -45,7 +45,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-HAL_StatusTypeDef ret; 
+extern HAL_StatusTypeDef ret; 
 
 // MPU6050 variables 
 #define MPU6050_ADDR 0xD0 
@@ -77,7 +77,7 @@ double adc_value;
 char transmitData[1000]; 
 uint8_t normalized_adc_value; 
 
-int pointerOfEeprom = 0; 
+uint16_t pointerOfEeprom = 0; 
 uint8_t retvals[1000]; 
 
 /* USER CODE END PV */
@@ -88,6 +88,7 @@ void MPU6050_Init(void);
 void MPU6050_Read_Accel(void); 
 void MPU6050_Read_Gyro(void); 
 void concntWithTransmit(void);
+void _writeEEPROMCustom(I2C_HandleTypeDef *i2cbus, uint8_t devAdres, uint16_t memAdres, uint8_t value);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -281,6 +282,8 @@ void TIM3_IRQHandler(void)
 	
 	//_writeEEPROM(&hi2c2, 0xA0, pointerOfEeprom, normalized_adc_value);
 	//_readEEPROMString(&hi2c2,0xA0, 0,7, retvals); 
+	_writeEEPROMCustom(&hi2c2, 0xA0, pointerOfEeprom, normalized_adc_value);
+	pointerOfEeprom++; 
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
@@ -393,6 +396,18 @@ void MPU6050_Read_Gyro(void)
     Gx = Gyro_X_RAW / 131.0;
     Gy = Gyro_Y_RAW / 131.0;
     Gz = Gyro_Z_RAW / 131.0;
+}
+
+void _writeEEPROMCustom(I2C_HandleTypeDef *i2cbus, 
+	uint8_t devAdres, uint16_t memAdres, uint8_t value) {
+	
+	uint8_t val[3] = { 0 };
+	val[0] = (memAdres >> 8) & 0xFF;
+	val[1] = (memAdres & 0xFF);
+	val[2] = value;
+
+	uint8_t buf2[50] = { 0 };
+	ret = HAL_I2C_Master_Transmit(i2cbus, devAdres, val, 3, 100);
 }
 
 
