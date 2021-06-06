@@ -6,6 +6,8 @@ serialConnection = serial.Serial(port='COM4', baudrate=9600, parity=serial.PARIT
                                  stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS,
                                  timeout=0)
 
+def hasNumbers(inputString):
+    return any(char.isdigit() for char in inputString)
 
 def receiving_data(serial_connection):
     receivedData = []
@@ -17,9 +19,9 @@ def receiving_data(serial_connection):
             else:
                 f = open("data.txt", "a")
                 data = ''.join(line)
-                print(data)
                 f.write(data + '\n')
                 f.close()
+                print(data)
                 receivedData.append(data)
                 line = []
 
@@ -34,7 +36,12 @@ if __name__ == "__main__":
     while True:
         inp = input("Send something from the console! \n")
         if str(inp) == 'R':
-            serialConnection.write('<R>'.encode())
+            serialConnection.write('<R>1'.encode())
+
+
             print("sent\n")
+        elif hasNumbers(inp) == True:
+            dt = '<' + inp + '>1'
+            serialConnection.write(dt.encode())
 
     x.join()
