@@ -23,6 +23,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "at24c256.h" 
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +62,9 @@ uint16_t pointerOfEeprom = 0;
 char eepromTransmit[1000];  // eprom max nr of cell is 32768 * 8 but we don't need it. 
 int lenStr; 
 char transmitData[1000]; 
+int res; 
+char resCalculation[50]; 
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,6 +77,7 @@ static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void flushUintMn(uint8_t *base, int size); 
+int resultOfCalculation(char *seriData);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -120,10 +128,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-		//_readEEPROMString(&hi2c2,0xA0, 0,90, retval);
-		//HAL_Delay(5000);
-		
+  {				
 		if(lenStr > 0) {
 			HAL_UART_Transmit(&huart1, (uint8_t*)transmitData, lenStr, 1000);
 			transmitData[0] = '\0';
@@ -148,6 +153,17 @@ int main(void)
 			
 			seriData[0] = 0x00; 
 		}
+		
+		if (isdigit(seriData[0]) != 0)
+    {
+        res = resultOfCalculation((char*)seriData);
+				sprintf(resCalculation, "Calculation: %d", res);
+				HAL_UART_Transmit(&huart1, (uint8_t*)resCalculation, strlen(resCalculation), 1000);
+				
+				seriData[0] = '\0'; 
+    }
+		
+		
 		
 		
     /* USER CODE END WHILE */
@@ -421,6 +437,65 @@ void flushUintMn(uint8_t *base, int size){
 	for(i = 0; i< size; i++){
 		*(base + i) = 0x00;
 	}
+}
+
+int resultOfCalculation(char *seriData)
+{
+    if (isdigit(seriData[0]) != 0)
+    {
+        int size = strlen((char *)seriData);
+        int p = 0, customFlag = 0;
+        char number1[10], number2[10], operand = '\n';
+        for (int i = 0; i < size; i++)
+        {
+            if (isdigit(seriData[i]) != 0 && customFlag == 0)
+            {
+                number1[p] = seriData[i];
+                p++;
+            }
+            else if (operand == '\n')
+            {
+                operand = seriData[i];
+                customFlag = 100;
+                p = 0;
+                continue;
+            }
+
+            if (isdigit(seriData[i]) != 0 && customFlag > 0)
+            {
+                number2[p] = seriData[i];
+                p++;
+            }
+        }
+
+        int a = atoi(number1);
+        int b = atoi(number2);
+        int result = 0;
+        if (operand == '+')
+        {
+            result = a + b;
+        }
+        else if (operand == '-')
+        {
+            result = a - b;
+        }
+        else if (operand == '*')
+        {
+            result = a * b;
+        }
+        else if (operand == '/')
+        {
+            result = a / b;
+        }
+        else
+        {
+            // nothing
+        }
+
+        return result;
+    }
+		
+		return 0; 
 }
 /* USER CODE END 4 */
 

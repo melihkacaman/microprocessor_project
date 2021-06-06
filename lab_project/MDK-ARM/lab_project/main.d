@@ -35,3 +35,4 @@ lab_project\main.o: ..\..\lab_project\at24c256.h
 lab_project\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 lab_project\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
 lab_project\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+lab_project\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\ctype.h

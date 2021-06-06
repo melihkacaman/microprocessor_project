@@ -2,7 +2,7 @@ import serial
 import threading
 import logging
 
-serialConnection = serial.Serial(port='COM8', baudrate=9600, parity=serial.PARITY_NONE,
+serialConnection = serial.Serial(port='COM4', baudrate=9600, parity=serial.PARITY_NONE,
                                  stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS,
                                  timeout=0)
 
@@ -29,5 +29,12 @@ if __name__ == "__main__":
     logging.info("Main    : Connection is ready.")
     x.start()
     logging.info("Main    : Connected!")
+
+
+    while True:
+        inp = input("Send something from the console! \n")
+        if str(inp) == 'R':
+            serialConnection.write('<R>'.encode())
+            print("sent\n")
+
     x.join()
-    logging.info("Main    : all done")
